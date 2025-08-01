@@ -1,0 +1,189 @@
+# PIPELINE DEFINITION
+# Name: mnist-pipeline
+components:
+  comp-download-dataset:
+    executorLabel: exec-download-dataset
+    outputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-serve:
+    executorLabel: exec-serve
+    inputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-train:
+    executorLabel: exec-train
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        outmodel:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-download-dataset:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - download_dataset
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef download_dataset(dataset: dsl.Output[dsl.Dataset]):\n    import\
+          \ urllib.request\n    urllib.request.urlretrieve('https://github.com/teo-blachere/mnist/raw/refs/heads/main/mnist.pkl.gz',\
+          \ dataset.path)\n\n"
+        image: python:3.8
+    exec-serve:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - serve
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"'  &&\
+          \  python3 -m pip install --quiet --no-warn-script-location 'kubernetes'\
+          \ 'kserve' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef serve(model: dsl.Input[dsl.Model]):\n    from kubernetes import\
+          \ client\n\n    from kserve import KServeClient\n    from kserve import\
+          \ constants\n    from kserve import V1beta1PredictorSpec\n    from kserve\
+          \ import V1beta1TFServingSpec\n    from kserve import V1beta1InferenceServiceSpec\n\
+          \    from kserve import V1beta1InferenceService\n\n    uri = model.uri.replace('minio',\
+          \ 's3')\n\n    default_model_spec = V1beta1InferenceServiceSpec(\n     \
+          \   predictor=V1beta1PredictorSpec(\n            tensorflow=V1beta1TFServingSpec(\n\
+          \                storage_uri=uri\n            ),\n            service_account_name='sa'\n\
+          \        )\n    )\n    user_namespace='zakaria'\n\n    isvc = V1beta1InferenceService(api_version=constants.KSERVE_V1BETA1,\n\
+          \                              kind=constants.KSERVE_KIND,\n           \
+          \                   metadata=client.V1ObjectMeta(name='mnist', namespace=user_namespace),\n\
+          \                              spec=default_model_spec)\n\n    print(\"\
+          isvc=\",isvc)\n    kserve = KServeClient()\n    kserve.create(isvc)\n\n"
+        image: python:3.8
+    exec-train:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.9.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train(dataset: dsl.Input[dsl.Dataset], outmodel: dsl.Output[dsl.Model]):\n\
+          \    import tensorflow as tf\n    import datetime, os, sys\n    import gzip\n\
+          \    import pickle\n\n    f = gzip.open(dataset.path, 'rb')\n    if sys.version_info\
+          \ < (3,):\n        data = pickle.load(f)\n    else:\n        data = pickle.load(f,\
+          \ encoding='bytes')\n    f.close()\n\n    (x_train, y_train), (x_test, y_test)\
+          \ = data\n    x_train, x_test = x_train / 255.0, x_test / 255.0\n\n    model\
+          \ = tf.keras.models.Sequential([\n            tf.keras.layers.Flatten(input_shape=(28,\
+          \ 28), name='layers_flatten'),\n            tf.keras.layers.Dense(512, activation='relu',\
+          \ name='layers_dense'),\n            tf.keras.layers.Dropout(0.2, name='layers_dropout'),\n\
+          \            tf.keras.layers.Dense(10, activation='softmax', name='layers_dense_2')\n\
+          \        ])\n    model.compile(optimizer='adam',\n                loss='sparse_categorical_crossentropy',\n\
+          \                metrics=['accuracy'])\n\n\n\n    model.fit(x=x_train, \n\
+          \                y=y_train, \n                epochs=5, \n             \
+          \   validation_data=(x_test, y_test)) \n\n    model.export(outmodel.path\
+          \ + \"/1/\")\n\n"
+        image: tensorflow/tensorflow
+pipelineInfo:
+  name: mnist-pipeline
+root:
+  dag:
+    tasks:
+      download-dataset:
+        cachingOptions: {}
+        componentRef:
+          name: comp-download-dataset
+        taskInfo:
+          name: download-dataset
+      serve:
+        cachingOptions: {}
+        componentRef:
+          name: comp-serve
+        dependentTasks:
+        - train
+        inputs:
+          artifacts:
+            model:
+              taskOutputArtifact:
+                outputArtifactKey: outmodel
+                producerTask: train
+        taskInfo:
+          name: serve
+      train:
+        cachingOptions: {}
+        componentRef:
+          name: comp-train
+        dependentTasks:
+        - download-dataset
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: dataset
+                producerTask: download-dataset
+        taskInfo:
+          name: train
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.9.0
