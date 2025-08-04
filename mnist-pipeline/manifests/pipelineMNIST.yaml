@@ -98,7 +98,7 @@ deploymentSpec:
           \ 's3')\n\n    default_model_spec = V1beta1InferenceServiceSpec(\n     \
           \   predictor=V1beta1PredictorSpec(\n            tensorflow=V1beta1TFServingSpec(\n\
           \                storage_uri=uri\n            ),\n            service_account_name='sa'\n\
-          \        )\n    )\n    user_namespace='zakaria'\n\n    isvc = V1beta1InferenceService(api_version=constants.KSERVE_V1BETA1,\n\
+          \        )\n    )\n    user_namespace='argouser'\n\n    isvc = V1beta1InferenceService(api_version=constants.KSERVE_V1BETA1,\n\
           \                              kind=constants.KSERVE_KIND,\n           \
           \                   metadata=client.V1ObjectMeta(name='mnist', namespace=user_namespace),\n\
           \                              spec=default_model_spec)\n\n    print(\"\
