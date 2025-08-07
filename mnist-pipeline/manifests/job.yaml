@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: run-mnist-pipelineWithMR
+  name: run-mnist-pipelinewithmr
   namespace: argouser
   annotations:
     argocd.argoproj.io/sync-options: Force=true,Replace=true
@@ -10,7 +10,7 @@ spec:
   template:
     metadata:
       labels:
-        job-name: run-mnist-pipelineWithMR
+        job-name: run-mnist-pipelinewithmr
     spec:
       serviceAccountName: pipeline-sa-runner 
       restartPolicy: Never
