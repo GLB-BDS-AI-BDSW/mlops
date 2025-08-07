@@ -25,5 +25,5 @@ jobs:
       with:
        context: mnist-pipeline
        push: true
-       tags: zakariaanzid/mnist:latest
+       tags: zakariaanzid/mnistwithmr:latest
        
