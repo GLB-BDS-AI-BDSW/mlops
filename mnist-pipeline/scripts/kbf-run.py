@@ -14,7 +14,7 @@ client = Client(
 # yolo_experiment = client.create_experiment(name="YOLO Experiment")
 
 run = client.create_run_from_pipeline_package(
-    pipeline_file="pipelineMNIST.yaml",
+    pipeline_file="pipelineWithMR.yaml",
     arguments={}
     )
 
