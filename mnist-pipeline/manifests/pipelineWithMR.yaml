@@ -94,7 +94,7 @@ deploymentSpec:
           \ import ModelRegistry\n\n    registry = ModelRegistry(\n            server_address=\"\
           http://model-registry-service.argouser.svc.cluster.local\",\n          \
           \  port=8080,\n            author=\"devuser\",\n            is_secure=False\n\
-          \   )\n    model_name=\"mnistinmr\"\n    model_version=\"v1.05\"  #could\
+          \   )\n    model_name=\"mnistinmr\"\n    model_version=\"v1.07\"  #could\
           \ not register same version, need to change it if you launch many tests\n\
           \n    uri = model.uri.replace('minio', 's3')\n\n    rm = registry.register_model(\n\
           \        model_name,\n        uri,\n        model_format_name=\"NA\",\n\
